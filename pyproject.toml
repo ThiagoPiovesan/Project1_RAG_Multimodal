@@ -1,0 +1,24 @@
+[project]
+name = "project1-rag-multimodal"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "faiss-cpu>=1.13.2",
+    "google-generativeai>=0.8.6",
+    "hf-xet>=1.2.0",
+    "huggingface-hub[xf-xet]>=0.36.0",
+    "langchain>=1.2.3",
+    "langchain-community>=0.4.1",
+    "langchain-google-genai>=4.1.3",
+    "langchain-text-splitters>=1.1.0",
+    "langchain-unstructured[local]>=1.0.1",
+    "pandoc>=2.4",
+    "poppler-utils>=0.1.0",
+    "pytesseract>=0.3.13",
+    "python-dotenv>=1.2.1",
+    "streamlit>=1.52.2",
+    "tesseract>=0.1.3",
+    "unstructured[all-docs]>=0.18.26",
+]
