@@ -21,6 +21,7 @@ from PIL import Image
 from unstructured.partition.pdf import partition_pdf
 from unstructured.staging.base import elements_to_json
 from agents.image_descriptor import describe_image
+from rag.vector_store import vectorize_json
 
 # ============================================================================= #
 file_path = "./data"
@@ -73,6 +74,14 @@ def process_pdf(file_path, base_file_name, described_images_hashes, mock_file=No
     end_time = time.time()
     st.success(f"Processing completed in {end_time - start_time:.2f} seconds!")
     st.markdown(f"[Download Output JSON](./data/{base_file_name}-output.json)")
+    
+    # ---------------------------------------------------------------------------- #
+    # Extract Embbeding to RAG:
+    json_data = ""
+    with open(f"{file_path}/{base_file_name}-output.json", "r", encoding="utf-8") as json_file:
+        json_data = json_file.read()
+    
+    vectorize_json(json_data=json_data)
     
     return described_images_hashes
 
@@ -318,6 +327,7 @@ def main():
             is_zip = uploaded_file.name.endswith((".zip", ".tar", ".gz", ".tgz", ".rar"))
             is_pdf = uploaded_file.name.endswith(".pdf")
 
+        # ---------------------------------------------------------------------------- #
             if is_pdf:
                 # Salva o arquivo temporariamente
                 with open(f"{file_path}/{base_file_name}.pdf", "wb") as f:
@@ -328,11 +338,12 @@ def main():
                     st.info("Processing the PDF file. This may take a few moments...")
                     described_images_hashes = process_pdf(file_path, base_file_name, described_images_hashes)
                     
+        # ---------------------------------------------------------------------------- #
             elif is_zip:
                 # Extrai o arquivo zip
                 # TODO: Adicionar multi-processing para processar vários documentos ao mesmo tempo
-                extract_zip(uploaded_file, file_path, described_images_hashes)
-    
+                described_images_hashes = extract_zip(uploaded_file, file_path, described_images_hashes)
+            
 # ============================================================================= #
     with tab2:
         # Aba 2: RAG Service (Futuro)

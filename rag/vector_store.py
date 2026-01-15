@@ -7,6 +7,9 @@
 # License: MIT
 # ============================================================================= #
 # Libs Importation:
+import time
+from memchunk import Chunker
+
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -24,8 +27,15 @@ def vectorize_json(json_data):
     """
     
     # --- 2. Chunk the Documents ---
+    t1 = time.time()
+    
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=100, chunk_overlap=20)
     docs = text_splitter.create_documents([json_data])
+    
+    # collect all chunks
+    # chunks = list(Chunker(text))
+    
+    print(f"Document chunking completed in {time.time() - t1:.2f} seconds.")
 
     # --- 3. Generate Embeddings ---
     # Using an open-source model from Sentence Transformers
