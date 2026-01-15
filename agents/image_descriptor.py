@@ -9,11 +9,9 @@
 # Libs Importation:
 import os
 import time
-import pytesseract
 from dotenv import load_dotenv
 
 from langchain_core.messages import HumanMessage
-from langchain_unstructured import UnstructuredLoader
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 # pytesseract.pytesseract.tesseract_cmd = 'C:/Program Files/Tesseract-OCR/tesseract' 
@@ -28,8 +26,8 @@ if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY não encontrada. Configure a variável de ambiente.")
 if not GOOGLE_API_KEY:
     raise ValueError("GOOGLE_API_KEY não encontrada. Configure a variável de ambiente.")
-if not OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY não encontrada. Configure a variável de ambiente.")
+# if not OPENAI_API_KEY:
+#     raise ValueError("OPENAI_API_KEY não encontrada. Configure a variável de ambiente.")
  
 # ============================================================================= #
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.7, api_key=GOOGLE_API_KEY)
@@ -63,7 +61,7 @@ def describe_image(base64_image: str) -> str:
 
     try:
         response = llm.invoke([message])
-        print(response.content)
+        # print(response.content)
         # time.sleep(2)  # Aguarda 2 segundos entre chamadas
         return response.content
     except Exception as e:
