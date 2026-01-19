@@ -7,8 +7,8 @@
 # License: MIT
 # ============================================================================= #
 # Libs Importation:
+import os
 import json
-import time
 
 # from memchunk import Chunker
 from langchain.tools import tool
@@ -58,28 +58,51 @@ def vectorize_json(json_data: json, base_file_name: str) -> FAISS:
         FAISS: The FAISS vector store containing the embedded documents.
     """
     
-    docs = create_document(json_data, base_file_name)
+    # 1. Cria os documentos novos a partir do JSON atual
+    new_docs = create_document(json_data, base_file_name)
     
-    # --- 2. Chunk the Documents ---  # Not necessary, already made by unstructured.io
-    
-    # text_splitter = RecursiveCharacterTextSplitter(chunk_size=100, chunk_overlap=20)
-    # docs = text_splitter.create_documents([json_data])
-    
-    # # collect all chunks
-    # docs = list(Chunker(json_data))
-    
-    # --- 3. Generate Embeddings ---
-    # Using an open-source model from Sentence Transformers
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    index_path = "rag/faiss_rag_index"
 
-    # --- 4. Create a FAISS Vector Store ---
-    # This step creates the index in-memory and stores the embeddings
-    vector_store = FAISS.from_documents(docs, embeddings)
-    print("FAISS index created and documents embedded.")
+    # ============================================================================= #
+    # 2. Verifica se o índice já existe
+    if os.path.exists(index_path) and os.path.exists(f"{index_path}/index.faiss"):
+        print(f"🔄 Carregando índice existente em '{index_path}'...")
+        
+        # Carrega o índice existente (permitindo a desserialização perigosa se for local e seguro)
+        vector_store = FAISS.load_local(
+            index_path, 
+            embeddings, 
+            allow_dangerous_deserialization=True
+        )
+        
+    # ============================================================================= #
+        # Verifica se o documento já foi indexado
+        existing_sources = set()
+        if vector_store.docstore._dict: # Verifica se há documentos
+            for doc_id, doc in vector_store.docstore._dict.items():
+                if "source" in doc.metadata:
+                    existing_sources.add(doc.metadata["source"])
 
-    # Optional: Save the index to disk for later reuse
-    vector_store.save_local("rag/faiss_rag_index")
-    print("Index saved to 'rag/faiss_rag_index'.")
+        if base_file_name in existing_sources:
+            print(f"⚠️ O arquivo '{base_file_name}' já está no índice. Pulando processamento.")
+            return vector_store
+        
+    # ============================================================================= #
+        # ADICIONA os novos documentos ao índice carregado
+        vector_store.add_documents(new_docs)
+        print(f"➕ Adicionados {len(new_docs)} novos chunks ao índice.")
+        
+    else:
+        print("🆕 Criando um novo índice do zero...")
+        # Cria o índice pela primeira vez
+        vector_store = FAISS.from_documents(new_docs, embeddings)
+
+    # 3. Salva o índice atualizado (sobrescrevendo a pasta com a versão combinada)
+    vector_store.save_local(index_path)
+    print("✅ Índice atualizado salvo com sucesso.")
+    
+    return vector_store
     
 # ============================================================================= #
 def load_vector_store() -> FAISS:

@@ -55,26 +55,25 @@ def encode_image(image_path):
 def process_pdf(file_path, base_file_name, described_images_hashes, mock_file=None):
     start_time = time.time()
                 
-    # if mock_file:
-    #     with open(f"{file_path}/{base_file_name}.pdf", "wb") as f:
-    #         f.write(mock_file.getvalue())
+    if mock_file:
+        with open(f"{file_path}/{base_file_name}.pdf", "wb") as f:
+            f.write(mock_file.getvalue())
                 
-    # elements = partition_pdf(
-    #     filename=f"{file_path}/{base_file_name}.pdf",
-    #     strategy="hi_res",                                  # Obrigatório para tabelas e imagens
-    #     infer_table_structure=True,                         # Extrai a estrutura da tabela
-    #     extract_images_in_pdf=True,                         # Salva as imagens localmente
-    #     extract_image_block_output_dir="./data/temp_images",# Pasta onde as imagens vão cair
-    #     extract_image_block_types=["Image", "Table"]        # O que deve ser "recortado"
-    # )
+    elements = partition_pdf(
+        filename=f"{file_path}/{base_file_name}.pdf",
+        strategy="hi_res",                                  # Obrigatório para tabelas e imagens
+        infer_table_structure=True,                         # Extrai a estrutura da tabela
+        extract_images_in_pdf=True,                         # Salva as imagens localmente
+        extract_image_block_output_dir="./data/temp_images",# Pasta onde as imagens vão cair
+        extract_image_block_types=["Image", "Table"]        # O que deve ser "recortado"
+    )
     
-    # described_images_hashes, elements = describe_images_and_tables(elements, described_images_hashes)
+    described_images_hashes, elements = describe_images_and_tables(elements, described_images_hashes)
     
-    # elements_to_json(elements=elements, filename=f"{file_path}/{base_file_name}-output.json")
+    elements_to_json(elements=elements, filename=f"{file_path}/{base_file_name}-output.json")
     
-    # end_time = time.time()
-    # st.success(f"Processing completed in {end_time - start_time:.2f} seconds!")
-    # st.markdown(f"[Download Output JSON](./data/{base_file_name}-output.json)")
+    end_time = time.time()
+    st.success(f"Processing completed in {end_time - start_time:.2f} seconds!")
     
     # ---------------------------------------------------------------------------- #
     # Extract Embbeding to RAG:
@@ -347,22 +346,56 @@ def main():
             
 # ============================================================================= #
     with tab2:
-        # Aba 2: RAG Service (Futuro)
-        st.markdown("---")
-        st.header("2. RAG Service (Future Implementation)")
-        st.write("This section will be implemented in the future to demonstrate the RAG service using the processed data.")
+        # Histórico de chat
+        if 'chat_messages' not in st.session_state:
+            st.session_state.chat_messages = []
         
-        # Perguntas e respostas com o agente RAG (Futuro)
-        query = st.text_area("Ask a question about the document:", height=100)
+        # Exibir mensagens anteriores
+        for message in st.session_state.chat_messages:
+            with st.chat_message(message["role"]):
+                st.write(message["content"])
         
-        if st.button("Get Answer"):
-            if query.strip() == "":
-                st.warning("Please enter a question to get an answer.")
-            else:
-                st.info("Getting answer from RAG agent...")
-                response = rag_agent_response(query)
-                st.write(response)
-
+        # Input do usuário
+        if query := st.chat_input("Digite sua pergunta sobre os documentos enviados..."):
+            
+            # Adicionar mensagem do usuário
+            st.session_state.chat_messages.append({"role": "user", "content": query})
+            with st.chat_message("user"):
+                st.write(query)
+            
+            # Gerar resposta com agente
+            with st.chat_message("assistant"):
+                with st.spinner("🔍 Consultando banco de dados..."):
+                    try:
+                        response = rag_agent_response(query)
+                        # resposta = response.get('output', 'Não consegui gerar uma resposta.')
+                    except KeyError as e:
+                        resposta = f"Erro de chave: {e}. Verifique se os dados do banco estão no formato correto."
+                        st.error("💡 Dica: Pode ser que a estrutura dos dados no banco esteja inconsistente.")
+                    except Exception as e:
+                        resposta = f"Erro ao processar: {e}"
+                        st.error("💡 Dica: Tente reformular sua pergunta de forma mais específica.")
+                        
+                        # Debug info
+                        with st.expander("🔍 Informações de debug"):
+                            st.write("**Erro completo:**")
+                            st.code(str(e))
+                            st.write("**Tipo de erro:**", type(e).__name__)
+                
+                st.write(resposta)
+            
+            # Adicionar resposta ao histórico
+            st.session_state.chat_messages.append({
+                "role": "assistant",
+                "content": resposta
+            })
+        
+        # Botão para limpar histórico
+        if st.button("🗑️ Limpar Conversa"):
+            st.session_state.chat_messages = []
+            st.session_state.chat_agent_executor.memory.clear()
+            st.rerun()
+        
 # ============================================================================= #
 if __name__ == "__main__":
     main()
