@@ -18,10 +18,11 @@ import pandas as pd
 import streamlit as st
 
 from PIL import Image
+from rag.vector_store import vectorize_json
+from agents.rag_agent import rag_agent_response
+from agents.image_descriptor import describe_image
 from unstructured.partition.pdf import partition_pdf
 from unstructured.staging.base import elements_to_json
-from agents.image_descriptor import describe_image
-from rag.vector_store import vectorize_json
 
 # ============================================================================= #
 file_path = "./data"
@@ -54,34 +55,34 @@ def encode_image(image_path):
 def process_pdf(file_path, base_file_name, described_images_hashes, mock_file=None):
     start_time = time.time()
                 
-    if mock_file:
-        with open(f"{file_path}/{base_file_name}.pdf", "wb") as f:
-            f.write(mock_file.getvalue())
+    # if mock_file:
+    #     with open(f"{file_path}/{base_file_name}.pdf", "wb") as f:
+    #         f.write(mock_file.getvalue())
                 
-    elements = partition_pdf(
-        filename=f"{file_path}/{base_file_name}.pdf",
-        strategy="hi_res",                                  # Obrigatório para tabelas e imagens
-        infer_table_structure=True,                         # Extrai a estrutura da tabela
-        extract_images_in_pdf=True,                         # Salva as imagens localmente
-        extract_image_block_output_dir="./data/temp_images",# Pasta onde as imagens vão cair
-        extract_image_block_types=["Image", "Table"]        # O que deve ser "recortado"
-    )
+    # elements = partition_pdf(
+    #     filename=f"{file_path}/{base_file_name}.pdf",
+    #     strategy="hi_res",                                  # Obrigatório para tabelas e imagens
+    #     infer_table_structure=True,                         # Extrai a estrutura da tabela
+    #     extract_images_in_pdf=True,                         # Salva as imagens localmente
+    #     extract_image_block_output_dir="./data/temp_images",# Pasta onde as imagens vão cair
+    #     extract_image_block_types=["Image", "Table"]        # O que deve ser "recortado"
+    # )
     
-    described_images_hashes, elements = describe_images_and_tables(elements, described_images_hashes)
+    # described_images_hashes, elements = describe_images_and_tables(elements, described_images_hashes)
     
-    elements_to_json(elements=elements, filename=f"{file_path}/{base_file_name}-output.json")
+    # elements_to_json(elements=elements, filename=f"{file_path}/{base_file_name}-output.json")
     
-    end_time = time.time()
-    st.success(f"Processing completed in {end_time - start_time:.2f} seconds!")
-    st.markdown(f"[Download Output JSON](./data/{base_file_name}-output.json)")
+    # end_time = time.time()
+    # st.success(f"Processing completed in {end_time - start_time:.2f} seconds!")
+    # st.markdown(f"[Download Output JSON](./data/{base_file_name}-output.json)")
     
     # ---------------------------------------------------------------------------- #
     # Extract Embbeding to RAG:
     json_data = ""
     with open(f"{file_path}/{base_file_name}-output.json", "r", encoding="utf-8") as json_file:
-        json_data = json_file.read()
+        json_data = json.load(json_file)
     
-    vectorize_json(json_data=json_data)
+    vectorize_json(json_data = json_data, base_file_name = base_file_name)
     
     return described_images_hashes
 
@@ -175,7 +176,7 @@ def extract_zip(uploaded_file, file_path, described_images_hashes):
     
     # ============================================================================= #
     # Botão para processar
-    if st.button("🚀 Processar Todos os Arquivos do ZIP", use_container_width=True):
+    if st.button("🚀 Processar Todos os Arquivos do ZIP", width='stretch'):
         
         # Contadores
         processados = 0
@@ -279,7 +280,7 @@ def extract_zip(uploaded_file, file_path, described_images_hashes):
         if resultados_detalhados:
             st.write("**Detalhes por arquivo:**")
             df_resultados = pd.DataFrame(resultados_detalhados)
-            st.dataframe(df_resultados, use_container_width=True)
+            st.dataframe(df_resultados, width='stretch')
             
         #     # Opção de download do relatório
         #     csv = df_resultados.to_csv(index=False).encode('utf-8')
@@ -334,7 +335,7 @@ def main():
                     f.write(uploaded_file.getbuffer())
                     
                 # Botão para iniciar o processamento
-                if st.button("🚀 Processar PDF", use_container_width=True):
+                if st.button("🚀 Processar PDF", width='stretch'):
                     st.info("Processing the PDF file. This may take a few moments...")
                     described_images_hashes = process_pdf(file_path, base_file_name, described_images_hashes)
                     
@@ -352,8 +353,15 @@ def main():
         st.write("This section will be implemented in the future to demonstrate the RAG service using the processed data.")
         
         # Perguntas e respostas com o agente RAG (Futuro)
-        st.text_area("Ask a question about the document:", height=100)
-        st.button("Get Answer")
+        query = st.text_area("Ask a question about the document:", height=100)
+        
+        if st.button("Get Answer"):
+            if query.strip() == "":
+                st.warning("Please enter a question to get an answer.")
+            else:
+                st.info("Getting answer from RAG agent...")
+                response = rag_agent_response(query)
+                st.write(response)
 
 # ============================================================================= #
 if __name__ == "__main__":

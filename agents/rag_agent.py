@@ -1,0 +1,72 @@
+# ============================================================================= #
+# Project: Multimodal RAG Pipeline
+# Develop by: Thiago Piovesan
+# Description: Streamlit Main Interface
+# Date: 2026-01-08 // YYYY-MM-DD
+# Version: 0.1.0
+# License: MIT
+# ============================================================================= #
+# Libs Importation:
+import os
+from dotenv import load_dotenv
+
+from langchain.agents import create_agent
+from langchain.chat_models import init_chat_model
+from rag.vector_store import load_vector_store, get_retriever_tool
+
+# ============================================================================= #
+# Get env variables
+load_dotenv()  # Carrega as variáveis do arquivo .env
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY não encontrada. Configure a variável de ambiente.")
+if not GOOGLE_API_KEY:
+    raise ValueError("GOOGLE_API_KEY não encontrada. Configure a variável de ambiente.")
+
+# ============================================================================= #
+def rag_agent_response(query: str) -> None:
+    """
+    Creates a Retrieval-Augmented Generation (RAG) agent using the provided retriever and prompt.
+    
+    Args:
+        query (str): The user query to be processed by the RAG agent.
+        
+    Returns:
+        None
+
+    """
+    # 1. Carrega o banco
+    vector_store = load_vector_store()
+    
+    # 2. Cria a tool já configurada
+    rag_tool = get_retriever_tool(vector_store)
+    tools = [rag_tool]
+    
+    # 3. Modelo
+    model = init_chat_model("google_genai:gemini-2.5-flash-lite") # Certifique-se que essa função existe no seu setup
+    
+    # 4. Prompt para AGENTE (sem {context} placeholder fixo)
+    # O agente recebe o contexto via mensagens de "ToolMessage"
+    system_prompt = """Você é um assistente técnico Sênior especializado em Visão Computacional e IA.
+    Você tem acesso a uma ferramenta de busca ('search_knowledge_base') que contém documentos PDF processados.
+    
+    Sempre que o usuário fizer uma pergunta técnica, USE a ferramenta para buscar o contexto.
+    Ao responder, cite a fonte (página ou nome do arquivo) se disponível.
+    Se a resposta vier de uma tabela ou descrição de imagem, mencione isso explicitamente.
+    """
+    
+    agent_rag = create_agent(model, tools, system_prompt=system_prompt)
+    
+    # 6. Execução
+    inputs = {"messages": [("user", query)]}
+    
+    print(f"--- Processando pergunta: {query} ---")
+    for step in agent_rag.stream(inputs, stream_mode="values"):
+        # Pega a última mensagem para exibir
+        last_message = step["messages"][-1]
+        last_message.pretty_print()
+        
+    return last_message.pretty_print()
