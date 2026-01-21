@@ -69,4 +69,4 @@ def rag_agent_response(query: str) -> None:
         last_message = step["messages"][-1]
         last_message.pretty_print()
         
-    return last_message.pretty_print()
+    return str(last_message.pretty_print())

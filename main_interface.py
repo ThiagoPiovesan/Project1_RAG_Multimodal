@@ -364,10 +364,11 @@ def main():
                 st.write(query)
             
             # Gerar resposta com agente
+            resposta = ""
             with st.chat_message("assistant"):
                 with st.spinner("🔍 Consultando banco de dados..."):
                     try:
-                        response = rag_agent_response(query)
+                        resposta = rag_agent_response(query)
                         # resposta = response.get('output', 'Não consegui gerar uma resposta.')
                     except KeyError as e:
                         resposta = f"Erro de chave: {e}. Verifique se os dados do banco estão no formato correto."
