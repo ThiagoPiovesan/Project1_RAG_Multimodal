@@ -208,4 +208,5 @@ __marimo__/
 
 data/temp_images/
 data/
+rag/faiss_rag_index/
 faiss_rag_index/

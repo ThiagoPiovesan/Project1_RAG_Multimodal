@@ -346,55 +346,63 @@ def main():
             
 # ============================================================================= #
     with tab2:
+        st.markdown("### 📝 Assistente de Documentos")
+        chat_container = st.container(height=500)
+        
         # Histórico de chat
         if 'chat_messages' not in st.session_state:
             st.session_state.chat_messages = []
         
-        # Exibir mensagens anteriores
-        for message in st.session_state.chat_messages:
-            with st.chat_message(message["role"]):
-                st.write(message["content"])
+        # Exibe mensagens DENTRO do container
+        with chat_container:
+            for message in st.session_state.chat_messages:
+                with st.chat_message(message["role"]):
+                    st.write(message["content"])
         
         # Input do usuário
         if query := st.chat_input("Digite sua pergunta sobre os documentos enviados..."):
             
             # Adicionar mensagem do usuário
             st.session_state.chat_messages.append({"role": "user", "content": query})
-            with st.chat_message("user"):
-                st.write(query)
+            with chat_container: # Escreve dentro da caixa de rolagem
+                with st.chat_message("user"):
+                    st.write(query)
             
             # Gerar resposta com agente
-            resposta = ""
-            with st.chat_message("assistant"):
-                with st.spinner("🔍 Consultando banco de dados..."):
-                    try:
-                        resposta = rag_agent_response(query)
-                        # resposta = response.get('output', 'Não consegui gerar uma resposta.')
-                    except KeyError as e:
-                        resposta = f"Erro de chave: {e}. Verifique se os dados do banco estão no formato correto."
-                        st.error("💡 Dica: Pode ser que a estrutura dos dados no banco esteja inconsistente.")
-                    except Exception as e:
-                        resposta = f"Erro ao processar: {e}"
-                        st.error("💡 Dica: Tente reformular sua pergunta de forma mais específica.")
-                        
-                        # Debug info
-                        with st.expander("🔍 Informações de debug"):
-                            st.write("**Erro completo:**")
-                            st.code(str(e))
-                            st.write("**Tipo de erro:**", type(e).__name__)
-                
-                st.write(resposta)
+            with chat_container: # Resposta aparece dentro da caixa
+                with st.chat_message("assistant"):
+                    with st.spinner("🔍 Consultando banco de dados..."):
+                        try:
+                            resposta_texto = rag_agent_response(query)
+                            
+                        except KeyError as e:
+                            resposta_texto = f"Erro de chave: {e}. Verifique se os dados do banco estão no formato correto."
+                            st.error("💡 Dica: Pode ser que a estrutura dos dados no banco esteja inconsistente.")
+                        except Exception as e:
+                            resposta_texto = f"Erro ao processar: {e}"
+                            st.error("💡 Dica: Tente reformular sua pergunta de forma mais específica.")
+                            
+                            # Debug info
+                            with st.expander("🔍 Informações de debug"):
+                                st.write("**Erro completo:**")
+                                st.code(str(e))
+                                st.write("**Tipo de erro:**", type(e).__name__)
+                    
+                        st.write(resposta_texto)
+                    
+                        # Adicionar resposta ao histórico
+                        st.session_state.chat_messages.append({
+                            "role": "assistant",
+                            "content": resposta_texto
+                        })
             
-            # Adicionar resposta ao histórico
-            st.session_state.chat_messages.append({
-                "role": "assistant",
-                "content": resposta
-            })
-        
+        # What is the main subject of the document: "Decoding Google’s AI Guide" ?
+        # What are the 3 steps to go from theory to production talked on "Decoding Google’s AI Guide" ?
+
         # Botão para limpar histórico
         if st.button("🗑️ Limpar Conversa"):
             st.session_state.chat_messages = []
-            st.session_state.chat_agent_executor.memory.clear()
+            # st.session_state.chat_agent_executor.memory.clear()
             st.rerun()
         
 # ============================================================================= #
