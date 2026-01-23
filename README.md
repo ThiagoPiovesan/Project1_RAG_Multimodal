@@ -1,9 +1,19 @@
 # 🧠 Multimodal RAG Agent: Document Analysis with Vision
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
-![LangChain](https://img.shields.io/badge/LangChain-v0.3-green)
-![Unstructured](https://img.shields.io/badge/Unstructured.io-Parsing-orange)
-![FAISS](https://img.shields.io/badge/VectorDB-FAISS-yellow)
+![Python](https://img.shields.io/badge/Python-3.10+-blue.svg) ![LangChain](https://img.shields.io/badge/LangChain-v0.3-green.svg) ![Unstructured](https://img.shields.io/badge/Unstructured.io-Parsing-orange.svg) ![FAISS](https://img.shields.io/badge/VectorDB-FAISS-yellow)
+
+---
+
+## Interface Inicial
+
+Tela de envio de arquivos para processamento:
+![Tela Interface Inicial](assets/TelaInicial.png)
+
+Tela de chat com o Agente RAG:
+![Tela Interface Chat](assets/TelaChat.png)
+
+Exemplo de resto do Agente:
+![Tela Interface Chat_Interacao](assets/TelaChatInteracao.png)
 
 ## 📋 Sobre o Projeto
 
